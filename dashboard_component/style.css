@@ -1,0 +1,520 @@
+:root {
+  --bg: #0f1216;
+  --panel: #171b21;
+  --panel2: #1d232b;
+  --border: #262c35;
+  --text: #e8eaed;
+  --text-dim: #9aa4b0;
+  --accent: #00b0ff;
+  --faol: #2ecc71;
+  --qisman: #f5b301;
+  --nofaol: #e74c3c;
+  --nomalum: #8a939e;
+  --cA: #17b978;
+  --cB: #8ac926;
+  --cC: #f5b301;
+  --cD: #e74c3c;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Inter, system-ui, sans-serif;
+  overflow: hidden;
+}
+
+body { display: flex; flex-direction: column; }
+
+/* ---------- Sarlavha ---------- */
+#topbar {
+  position: relative;
+  height: 56px;
+  flex: 0 0 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 20px;
+  background: linear-gradient(90deg, #12161b 0%, #171d25 50%, #12161b 100%);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+.brand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+.brand h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 8px;
+}
+.top-right { color: var(--text-dim); font-size: 13px; }
+
+/* ---------- Asosiy joylashuv ---------- */
+#layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+#panel {
+  width: 330px;
+  flex: 0 0 330px;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+#panel::-webkit-scrollbar { width: 8px; }
+#panel::-webkit-scrollbar-thumb { background: #2c333d; border-radius: 4px; }
+
+#map { flex: 1; position: relative; min-width: 0; }
+
+/* ---------- Kartalar ---------- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.card.muted { color: var(--text-dim); font-size: 12px; text-align: center; }
+
+.field-label { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 4px; }
+select#yearSel {
+  width: 100%;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  outline: none;
+  cursor: pointer;
+}
+select#yearSel:focus { border-color: var(--accent); }
+
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.kpi {
+  background: var(--panel2);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.kpi.wide { margin-top: 10px; }
+.kpi-label { font-size: 11px; color: var(--text-dim); }
+.kpi-value { font-size: 24px; font-weight: 700; color: var(--accent); }
+
+.scorebar {
+  height: 6px;
+  background: #262c35;
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.scorebar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--nofaol), var(--qisman), var(--faol));
+  transition: width .5s ease;
+}
+
+/* holat qatorlari (bosish bilan filtr) */
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .15s;
+}
+.status-row:hover { border-color: var(--border); }
+.status-row.active { border-color: var(--accent); }
+.status-row .nm { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.status-row .ct { font-size: 20px; font-weight: 700; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+.chart { height: 190px; }
+.chart.tall { height: 230px; }
+
+/* ---------- Xarita ustidagi elementlar ---------- */
+#legend {
+  position: absolute;
+  right: 12px;
+  bottom: 28px;
+  z-index: 5;
+  background: rgba(23, 27, 33, .92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+/* ---------- MapLibre pop-up ---------- */
+.maplibregl-popup { z-index: 20; }
+.maplibregl-popup-content {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,.6);
+}
+.maplibregl-popup-close-button {
+  color: #fff;
+  font-size: 20px;
+  right: 6px;
+  top: 4px;
+  z-index: 2;
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--panel); }
+.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--panel); }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--panel); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--panel); }
+
+.pond-popup .maplibregl-popup-content { width: 560px; }
+/* bog'lovchi chiziq bor — ichki uchburchak (tip) yashiriladi */
+.pond-popup .maplibregl-popup-tip { display: none; }
+
+.pp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+.pp-head-main { flex: 1; }
+.pp-head-title { font-size: 17px; font-weight: 800; line-height: 1.15; }
+.pp-head-line { font-size: 12px; font-weight: 400; opacity: .95; margin-top: 2px; }
+.pp-head-line b { font-weight: 700; }
+.pp-head .pp-class {
+  align-self: center;
+  background: rgba(0,0,0,.28);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.pp-class-lbl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.pp-class-lbl small { font-size: 9px; opacity: .9; text-transform: uppercase; letter-spacing: .5px; }
+.pond-popup.dragging .maplibregl-popup-tip,
+.pond-popup.pinned .maplibregl-popup-tip { visibility: hidden; }
+.pp-body { padding: 12px 14px 14px; }
+
+/* indikator kartochkalari (grid) */
+.pp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.pp-cell {
+  background: var(--panel2);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.pp-cell { min-width: 0; }
+.pp-cell .k { font-size: 10.5px; color: var(--text-dim); line-height: 1.2; overflow-wrap: anywhere; }
+.pp-cell .v { font-size: 15px; font-weight: 700; margin-top: 2px; overflow-wrap: anywhere; }
+.pp-cell .v small { font-size: 11px; font-weight: 500; color: var(--text-dim); }
+.risk-past { color: #2ecc71; }
+.risk-orta { color: #f5b301; }
+.risk-yuqori { color: #e74c3c; }
+
+/* 4 blok — 2×2 grid */
+.pp-blocks-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pp-block {
+  background: #12161b;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+/* 2 ustunli joylashuvda ichki kataklar ham 2 ustun */
+.pp-blocks-2col .pp-block .pp-grid { grid-template-columns: 1fr 1fr; }
+.pp-blocks-2col .pp-cell .v { font-size: 14px; }
+
+/* yonma-yon ikkita grafik (indekslar | parametrlar) */
+.pp-charts { display: flex; gap: 8px; }
+.pp-charts .pp-chart-col { flex: 1; min-width: 0; }
+.pp-chart-half { width: 100%; height: 150px; }
+
+/* passport: 3 ball kartalari */
+.score-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.score-card {
+  flex: 1;
+  background: #12161b;
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.score-val { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.score-lbl { font-size: 11px; color: var(--text); margin-top: 2px; }
+.score-sub { font-size: 9.5px; color: var(--text-dim); margin-top: 1px; min-height: 12px; }
+
+/* passport: PDF tugmasi */
+.pdf-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #04121a;
+  border: none;
+  border-radius: 8px;
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.pdf-btn:hover { filter: brightness(1.08); }
+
+/* blok ichidagi izoh */
+.pp-note {
+  grid-column: 1 / -1;
+  background: #10233a;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.pp-note-dim { background: var(--panel2); color: var(--text-dim); }
+
+/* kattalashtirish tugmasi */
+.pp-section-title { display: flex; align-items: center; }
+.pp-expand {
+  margin-left: auto;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 7px;
+}
+.pp-expand:hover { color: var(--accent); border-color: var(--accent); }
+
+/* katta grafik modali */
+.chart-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .72);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chart-modal[hidden] { display: none; }
+.chart-modal-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 88vw;
+  height: 80vh;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+}
+.chart-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+}
+#chartModalClose {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+#chartModalClose:hover { color: #fff; }
+.chart-modal-body { flex: 1; padding: 12px 14px; min-height: 0; }
+.pp-block-h {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.pp-block-q {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.pp-block .pp-grid { margin-bottom: 0; }
+.pp-nobiomass {
+  background: var(--panel2);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+}
+.pp-nobiomass b { color: #e74c3c; }
+.pp-nobiomass span { color: var(--text-dim); font-size: 12px; }
+
+.pp-section-title {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 4px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.pp-chart { width: 100%; height: 170px; }
+
+.pp-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+  background: #000;
+  margin-top: 10px;
+}
+.pp-novideo { color: var(--text-dim); font-size: 13px; padding: 12px 0; text-align: center; }
+
+/* hover tooltip */
+.hover-tip .maplibregl-popup-content {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+/* ---------- Mahsulotlar menyusi ---------- */
+.prod-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel2);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.prod-item:last-child { margin-bottom: 0; }
+.prod-item:hover { border-color: var(--border); }
+.prod-item.active { border-color: var(--accent); background: #10222c; }
+.prod-item.disabled { opacity: .6; cursor: not-allowed; }
+.prod-ico { font-size: 20px; line-height: 1; }
+.prod-txt { flex: 1; }
+.prod-name { font-size: 13.5px; font-weight: 600; }
+.prod-sub { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+.prod-badge {
+  font-size: 10px;
+  background: #3a2f12;
+  color: #f5b301;
+  border-radius: 5px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+/* ---------- Klass taqsimoti (filtr) ---------- */
+.class-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.class-row:hover { border-color: var(--border); }
+.class-row.active { border-color: var(--accent); }
+.class-badge {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  display: grid; place-items: center;
+  font-weight: 800; color: #06110c; font-size: 14px;
+}
+.class-row .cname { flex: 1; font-size: 12.5px; color: var(--text-dim); }
+.class-row .ccount { font-size: 18px; font-weight: 700; }
+.class-bar { height: 5px; border-radius: 3px; background: #262c35; margin-top: 5px; overflow: hidden; }
+.class-bar > div { height: 100%; border-radius: 3px; }
+
+/* ---------- Gauge qatori ---------- */
+.gauge-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.gauge { height: 120px; }
+.gauge-cap { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: -8px; }
+
+/* ---------- Reyting jadvali ---------- */
+.tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.tab {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  padding: 6px;
+  border-radius: 7px;
+  background: var(--panel2);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.tab.active { border-color: var(--accent); color: var(--accent); }
+.rank-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rank-table th {
+  text-align: left; color: var(--text-dim); font-weight: 500;
+  padding: 4px 6px; border-bottom: 1px solid var(--border);
+}
+.rank-table td { padding: 4px 6px; border-bottom: 1px solid #1c2129; }
+.rank-table tr:hover td { background: #1c2530; cursor: pointer; }
+.rank-cls {
+  display: inline-block; width: 18px; height: 18px; border-radius: 5px;
+  text-align: center; line-height: 18px; font-weight: 800; color: #06110c; font-size: 11px;
+}
