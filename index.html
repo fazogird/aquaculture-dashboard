@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AQUACULTURE — Baliq hovuzlari monitoringi</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-dot"></span>
+    <h1>AQUACULTURE</h1>
+  </div>
+  <div class="top-right"><span id="clock"></span></div>
+</header>
+
+<div id="layout">
+
+  <aside id="panel">
+    <!-- Mahsulotlar menyusi -->
+    <div class="card">
+      <div class="card-title">🧩 Mahsulotlar</div>
+      <div id="productMenu"></div>
+    </div>
+
+    <!-- Tanlangan mahsulot analitikasi shu yerga chiziladi -->
+    <div id="productBody"></div>
+  </aside>
+
+  <div id="map">
+    <div id="legend"></div>
+  </div>
+
+</div>
+
+<!-- Grafikni katta ko'rsatish oynasi -->
+<div id="chartModal" class="chart-modal" hidden>
+  <div class="chart-modal-box">
+    <div class="chart-modal-head">
+      <span id="chartModalTitle"></span>
+      <button id="chartModalClose" title="Yopish">✕</button>
+    </div>
+    <div id="chartModalBody" class="chart-modal-body"></div>
+  </div>
+</div>
+
+<script>
+/* Preview brauzeri sahifani "hidden" ushlasa rAF muzlaydi — MapLibre yuklanmaydi.
+   Shu holatda taymerga o'tkazamiz. */
+(function () {
+  if (document.visibilityState !== "hidden") return;
+  var nRAF = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = function (cb) {
+    return document.visibilityState === "hidden"
+      ? setTimeout(function () { cb(performance.now()); }, 33) : nRAF(cb);
+  };
+  window.cancelAnimationFrame = function (id) { clearTimeout(id); };
+})();
+</script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

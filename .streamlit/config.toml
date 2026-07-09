@@ -1,0 +1,7 @@
+[server]
+# static/ papkani /app/static/ manzilida beradi (videolar shu orqali ishlaydi)
+enableStaticServing = true
+headless = true
+
+[theme]
+base = "dark"
