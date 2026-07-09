@@ -69,9 +69,20 @@ def build_html() -> str:
     # video manzilini sozlash
     if mode == "static":
         # Streamlit static xizmati: <host>/app/static/video/<fayl>.
-        # srcdoc iframe ichida host'ni window.parent orqali aniqlaymiz.
-        vbase = ("<script>window.__VBASE=((window.parent&&window.parent.location)?"
-                 "window.parent.location.origin:location.origin)+'/app/static/video/';</script>")
+        # Streamlit Cloud ilovani /~/+/ prefiksi ostida ochadi. Faqat `origin`
+        # ishlatilsa prefiks yo'qolib, video o'rniga platformaning HTML sahifasi
+        # qaytadi. Parent sahifaning to'liq URL'idan nisbiy static yo'l yasaymiz:
+        # lokalda  /app/static/video/
+        # Cloud'da /~/+/app/static/video/
+        vbase = (
+            "<script>(function(){"
+            "var b;"
+            "try{b=(window.parent&&window.parent.location)?"
+            "window.parent.location.href:location.href;}"
+            "catch(e){b=document.referrer||location.href;}"
+            "window.__VBASE=new URL('app/static/video/',b).href;"
+            "})();</script>"
+        )
         shim = vbase + shim
         appjs_marker = 'src="/videos/'
         html = html.replace(appjs_marker, 'src="${window.__VBASE}')
