@@ -36,6 +36,8 @@ const PRODUCTS = [
    sub: "Suv sifati · o'sish · biomassa · A/B/C/D", ready: true},
   {id: "passport", ico: "🎫", name: "E-auksion / Investitsion pasport",
    sub: "Auction Readiness · Investment · Risk", ready: true},
+  {id: "explorer", ico: "🔬", name: "Qo'shimcha analitikalar",
+   sub: "Barcha indekslar · parametrlar · tarixiy signal", ready: true},
 ];
 
 // Risk rangi (past/o'rta/yuqori)
@@ -220,6 +222,7 @@ map.on("load", async () => {
 
   map.on("click", "ponds-fill", e => {
     if (product === "passport") openPassportPopup(e.features[0].properties, e.lngLat);
+    else if (product === "explorer") openAnalyticsPopup(e.features[0].properties, e.lngLat);
     else openPondPopup(e.features[0].properties, e.lngLat);
   });
 
@@ -257,6 +260,7 @@ function selectProduct(id) {
   for (const k in panelCharts) delete panelCharts[k];
   if (id === "aps") renderAPS();
   else if (id === "passport") renderPassport();
+  else if (id === "explorer") renderExplorer();
   else renderLegal();
 }
 
@@ -458,6 +462,7 @@ function refresh() {
   if (!ponds) return;
   if (product === "legal") return refreshLegal();
   if (product === "passport") return refreshPassport();
+  if (product === "explorer") return refreshExplorer();
   if (product !== "aps") return;
 
   map.setPaintProperty("ponds-fill", "fill-color", classColorExpr());
@@ -598,6 +603,40 @@ function renderLegendInvest() {
     CLASS_ORDER.map(c =>
       `<div class="legend-item"><span class="sw" style="background:${CLASS_COLORS[c]}"></span>${CLASS_LABEL[c]}</div>`
     ).join("");
+}
+
+/* =====================================================================
+   4) QO'SHIMCHA ANALITIKALAR (Aqua Analytics Explorer)
+   ===================================================================== */
+function renderExplorer() {
+  document.getElementById("productBody").innerHTML = `
+    <div class="card">
+      <div class="card-title">🔬 Qo'shimcha analitikalar</div>
+      <div style="color:var(--text-dim);font-size:12px;line-height:1.5;">
+        Har bir hovuz ichidagi <b>barcha indeks, parametr, oylik qiymat, anomaliya
+        va xom atributlar</b>ni ochib beradi. Bu mahsulot qaror bermaydi —
+        ma'lumotni ko'rsatadi.
+        <br><br>Xaritadan <b>hovuzni bosing</b> — 6 tabli analitika oynasi ochiladi:
+      </div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;font-size:12px;">
+        <div>🪪 Hovuz pasporti · Faollik signallari</div>
+        <div>📈 Indekslar dinamikasi (NDWI/NDCI/NDTI/TI)</div>
+        <div>🧪 Suv sifati parametrlari</div>
+        <div>🌡️ Harorat va suv balansi</div>
+        <div>⚠️ Anomaliya va signal</div>
+        <div>🗂️ Xom atributlar jadvali (CSV eksport)</div>
+      </div>
+    </div>`;
+  refresh();
+}
+
+function refreshExplorer() {
+  // neytral rang — "bosib ko'ring" rejimi (holat bo'yicha)
+  map.setPaintProperty("ponds-fill", "fill-color", statusColorExpr());
+  map.setPaintProperty("ponds-line", "line-color", statusColorExpr());
+  map.setFilter("ponds-fill", null);
+  map.setFilter("ponds-line", null);
+  renderLegendStatus();
 }
 
 /* =====================================================================
@@ -1288,6 +1327,404 @@ function closeChartModal() {
   const modal = document.getElementById("chartModal");
   modal.hidden = true;
   if (modalChart) { modalChart.dispose(); modalChart = null; }
+}
+
+/* =====================================================================
+   ANALITIKA POP-UP (Aqua Analytics Explorer) — 6 tab
+   ===================================================================== */
+let axCharts = [];
+const AX_TABS = ["🪪 Faollik", "📈 Indekslar", "🧪 Suv sifati",
+                 "🌡️ Harorat/balans", "⚠️ Anomaliya", "🗂️ Xom atributlar"];
+const AX_METRIC_CAT = {ndwi: "NDWI", ndci: "NDCI", ndti: "NDTI", ti: "TI",
+                       chla: "Chl-a", secchi: "Secchi", lst: "LST", airtemp: "Airtemp"};
+const AX_COLORS = {ndwi: "#00b0ff", ndci: "#2ecc71", ndti: "#c58b4b", ti: "#ab47bc",
+                   chla: "#2ecc71", secchi: "#6a5acd", lst: "#e74c3c", airtemp: "#ff9800"};
+
+function axDispose() { axCharts.forEach(c => { try { c.dispose(); } catch (_) {} }); axCharts = []; }
+function axInit(root, sel) {
+  const el = root.querySelector(sel);
+  if (!el) return null;
+  const c = echarts.init(el);
+  axCharts.push(c);
+  return c;
+}
+function axStat(arr) {
+  const v = arr.map(a => a[1]).filter(x => x != null);
+  if (!v.length) return {min: null, max: null, mean: null, n: 0};
+  const s = v.reduce((a, b) => a + b, 0);
+  return {min: Math.min(...v), max: Math.max(...v), mean: s / v.length, n: v.length};
+}
+function axNum(v, nd = 2) { return v == null || isNaN(v) ? "—" : (+v).toFixed(nd); }
+
+const AX_BASE = {
+  backgroundColor: "transparent",
+  textStyle: {color: "#9aa4b0"},
+  grid: {left: 6, right: 12, top: 30, bottom: 40, containLabel: true},
+  legend: {top: 2, textStyle: {color: "#9aa4b0", fontSize: 11}, itemWidth: 14, itemHeight: 8},
+  tooltip: {trigger: "axis"},
+};
+function axTimeX() {
+  return {type: "time", axisLabel: {color: "#9aa4b0", fontSize: 10},
+    axisLine: {lineStyle: {color: "#333"}}, splitLine: {show: false}};
+}
+function axValY(name) {
+  return {type: "value", name: name || "", nameTextStyle: {color: "#9aa4b0", fontSize: 10},
+    axisLabel: {color: "#9aa4b0", fontSize: 10}, splitLine: {lineStyle: {color: "#20262e"}}};
+}
+function axLineSeries(name, data, color, opts) {
+  return Object.assign({name, type: "line", data, showSymbol: false, smooth: true,
+    connectNulls: true, lineStyle: {width: 1.8, color}, itemStyle: {color}}, opts || {});
+}
+
+async function openAnalyticsPopup(props, lngLat) {
+  const pid = String(props.pond_id);
+  axDispose();
+  const mw = Math.min(880, map.getContainer().clientWidth - 24);
+  const popup = new maplibregl.Popup({maxWidth: mw + "px",
+    className: "pond-popup analytics-popup", anchor: "left", offset: 14})
+    .setLngLat(lngLat)
+    .setHTML(`<div class="pp-head" style="background:#0e7490">
+      <div class="pp-head-main"><div class="pp-head-title">Hovuz ${pid}</div>
+      <div class="pp-head-line">Qo'shimcha analitikalar</div></div></div>
+      <div class="pp-body"><div style="padding:34px;text-align:center;color:#9aa4b0;">
+      ⏳ Analitika yuklanmoqda…</div></div>`)
+    .addTo(map);
+  popup.getElement().querySelector(".maplibregl-popup-content").style.width = mw + "px";
+  makeDraggable(popup);
+  placePopupRight(popup, pid, lngLat);
+  popup.on("close", axDispose);
+
+  let data;
+  try {
+    data = await fetch(`data/analytics/${pid}.json`).then(r => r.json());
+  } catch (e) {
+    popup.setHTML(`<div class="pp-head" style="background:#7f1d1d"><div class="pp-head-main">
+      <div class="pp-head-title">Hovuz ${pid}</div></div></div>
+      <div class="pp-body"><div style="padding:24px;color:#f88;">Analitika topilmadi (${pid}.json).</div></div>`);
+    return;
+  }
+  renderAnalytics(popup, pid, data, mw);
+}
+
+function renderAnalytics(popup, pid, data, mw) {
+  const s = data.static || {}, u = data.util || {};
+  const status = u.foydalanilgan || "—";
+  const stColor = STATUS_COLORS[status] || "#8a939e";
+  const tabsHTML = AX_TABS.map((t, i) =>
+    `<button class="ax-tab${i === 0 ? " active" : ""}" data-t="${i}">${t}</button>`).join("");
+
+  popup.setHTML(`
+    <div class="pp-head" style="background:${stColor}">
+      <div class="pp-head-main">
+        <div class="pp-head-title">Hovuz ${pid} — Qo'shimcha analitikalar</div>
+        <div class="pp-head-line">${s.viloyat || ""} · ${s.tuman || "—"} ·
+          ${axNum(s.area_ha, 2)} ga · Slope ${axNum(s.slope, 2)} · Status: <b>${status}</b></div>
+        <div class="pp-head-line">Davr: ${u.analysis_start || "—"} → ${u.analysis_end || "—"} ·
+          Util Score: <b>${axNum(u.util_score, 1)}</b></div>
+      </div>
+    </div>
+    <div class="pp-body">
+      <div class="ax-tabs">${tabsHTML}</div>
+      <div class="ax-panel" id="axPanel"></div>
+      <div class="ax-summary" id="axSummary"></div>
+    </div>`);
+
+  const el = popup.getElement();
+  const contentEl = el.querySelector(".maplibregl-popup-content");
+  contentEl.style.width = mw + "px";
+  const bodyEl = el.querySelector(".pp-body");
+  bodyEl.style.maxHeight = (map.getContainer().clientHeight - el.querySelector(".pp-head").offsetHeight - 40) + "px";
+  bodyEl.style.overflowY = "auto";
+  bodyEl.style.overflowX = "hidden";
+  makeDraggable(popup);
+  clampPopup(popup);
+
+  el.querySelector("#axSummary").innerHTML = axSummary(pid, data);
+  el.querySelectorAll(".ax-tab").forEach(btn => {
+    btn.onclick = () => {
+      el.querySelectorAll(".ax-tab").forEach(b => b.classList.toggle("active", b === btn));
+      axRenderTab(+btn.dataset.t, data, el.querySelector("#axPanel"));
+    };
+  });
+  axRenderTab(0, data, el.querySelector("#axPanel"));
+}
+
+function axRenderTab(i, data, panel) {
+  axDispose();
+  if (i === 0) axTabFaollik(data, panel);
+  else if (i === 1) axTabIndeks(data, panel);
+  else if (i === 2) axTabSifat(data, panel);
+  else if (i === 3) axTabHarorat(data, panel);
+  else if (i === 4) axTabAnomaliya(data, panel);
+  else axTabXom(data, panel);
+}
+
+/* ---- Tab 0: Faollik signallari ---- */
+function axTabFaollik(data, panel) {
+  const u = data.util || {};
+  const pct = v => v == null ? 0 : v * 100;
+  panel.innerHTML = `
+    <div class="ax-gauges">
+      <div><div id="axgW" class="gauge"></div><div class="gauge-cap">WPS</div></div>
+      <div><div id="axgA" class="gauge"></div><div class="gauge-cap">AAS</div></div>
+      <div><div id="axgU" class="gauge"></div><div class="gauge-cap">Util Score</div></div>
+    </div>
+    <div class="pp-grid ax-grid">
+      ${axCell("SAR water persistence", axNum(u.sar_water_persistence, 2))}
+      ${axCell("SAR water cover", axNum(u.sar_water_cover_mean, 2))}
+      ${axCell("SAR std", axNum(u.sar_std, 2))}
+      ${axCell("Valid S1 (radar)", u.valid_s1_count ?? "—")}
+      ${axCell("Valid HLS (optik)", u.valid_hls_count ?? "—")}
+      ${axCell("Growth Potential", axNum(u.growth_potential, 1))}
+      ${axCell("Thermal Score", axNum(u.thermal_score, 1))}
+      ${axCell("Optimal kunlar", u.optimal_days ?? "—")}
+      ${axCell("Issiqlik stress", (u.heat_stress_days ?? "—") + " kun")}
+      ${axCell("GDD", axNum(u.gdd, 0))}
+      ${axCell("Food Score", axNum(u.food_score, 1))}
+      ${axCell("Foydalanilgan", u.foydalanilgan || "—")}
+    </div>`;
+  gauge(axInit(panel, "#axgW"), pct(u.wps), "#00b0ff");
+  gauge(axInit(panel, "#axgA"), pct(u.aas), "#8ac926");
+  gauge(axInit(panel, "#axgU"), u.util_score, "#ff9800");
+}
+function axCell(k, v) { return `<div class="pp-cell"><div class="k">${k}</div><div class="v">${v}</div></div>`; }
+
+/* ---- Tab 1: Indekslar dinamikasi ---- */
+function axTabIndeks(data, panel) {
+  const sc = data.scenes || {};
+  const metrics = ["ndwi", "ndci", "ndti", "ti"];
+  panel.innerHTML = `
+    <div class="ax-sec">Indekslar — vaqt bo'yicha (per-scene)</div>
+    <div id="axIdxLine" class="ax-chart"></div>
+    <div class="ax-statcards" id="axIdxStats"></div>
+    <div class="ax-sec">Oylik o'rtacha — issiqlik xaritasi (heatmap)</div>
+    <div id="axIdxHeat" class="ax-chart"></div>`;
+  const line = axInit(panel, "#axIdxLine");
+  line.setOption(Object.assign({}, AX_BASE, {
+    xAxis: axTimeX(), yAxis: axValY(),
+    series: metrics.map(m => axLineSeries(m.toUpperCase(), sc[m] || [], AX_COLORS[m])),
+  }));
+  panel.querySelector("#axIdxStats").innerHTML = metrics.map(m => {
+    const st = axStat(sc[m] || []);
+    return `<div class="ax-statcard" style="border-color:${AX_COLORS[m]}">
+      <div class="t" style="color:${AX_COLORS[m]}">${m.toUpperCase()}</div>
+      <div class="r">min ${axNum(st.min, 2)} · o'rt ${axNum(st.mean, 2)} · max ${axNum(st.max, 2)}</div>
+      <div class="n">${st.n} sana</div></div>`;
+  }).join("");
+  // heatmap: oylik o'rtacha (mean) qatorlar × oy ustunlar
+  const mm = data.monthly || {};
+  const rows = [["ndwi", "ndwi_mean"], ["ndci", "ndci_mean"], ["ndti", "ndti_mean"], ["ti", "ti_mean"]];
+  const months = [...new Set(rows.flatMap(([, mk]) => (mm[mk] || []).map(a => a[0])))].sort();
+  const cells = [], vals = [];
+  rows.forEach(([lbl, mk], yi) => (mm[mk] || []).forEach(([ym, v]) => {
+    const xi = months.indexOf(ym); if (xi >= 0 && v != null) { cells.push([xi, yi, v]); vals.push(v); }
+  }));
+  const heat = axInit(panel, "#axIdxHeat");
+  heat.setOption({
+    backgroundColor: "transparent", tooltip: {position: "top"},
+    grid: {left: 6, right: 12, top: 10, bottom: 60, containLabel: true},
+    xAxis: {type: "category", data: months, axisLabel: {color: "#9aa4b0", fontSize: 9, rotate: 60}},
+    yAxis: {type: "category", data: rows.map(r => r[0].toUpperCase()), axisLabel: {color: "#9aa4b0", fontSize: 10}},
+    visualMap: {min: vals.length ? Math.min(...vals) : 0, max: vals.length ? Math.max(...vals) : 1,
+      calculable: true, orient: "horizontal", left: "center", bottom: 0,
+      inRange: {color: ["#0d3b66", "#3a86ff", "#8ac926", "#f5b301", "#e74c3c"]},
+      textStyle: {color: "#9aa4b0"}},
+    series: [{type: "heatmap", data: cells, emphasis: {itemStyle: {borderColor: "#fff", borderWidth: 1}}}],
+  });
+}
+
+/* ---- Tab 2: Suv sifati ---- */
+function axTabSifat(data, panel) {
+  const sc = data.scenes || {};
+  const pp = (typeof passport !== "undefined" && passport[data.static.id]) || {};
+  panel.innerHTML = `
+    <div class="pp-grid ax-grid">
+      ${axCell("Water Quality", (pp.water_quality_score != null ? Math.round(pp.water_quality_score) + " / 100" : "—"))}
+      ${axRiskCell("Alga riski", pp.algae_risk)}
+      ${axRiskCell("Loyqalik riski", pp.turbidity_risk)}
+      ${axCell("Trofik holat", pp.trophic_class || "—")}
+    </div>
+    <div class="ax-sec">Chl-a (mg/m³) va Secchi (m)</div>
+    <div id="axQ1" class="ax-chart"></div>
+    <div class="ax-sec">NDCI (alga) va NDTI (loyqalik)</div>
+    <div id="axQ2" class="ax-chart"></div>
+    <div class="ax-sec">Chl-a ↔ Secchi bog'liqligi</div>
+    <div id="axScatter" class="ax-chart"></div>`;
+  const c1 = axInit(panel, "#axQ1");
+  c1.setOption(Object.assign({}, AX_BASE, {
+    xAxis: axTimeX(), yAxis: [axValY("Chl-a"), Object.assign(axValY("Secchi"), {splitLine: {show: false}})],
+    series: [axLineSeries("Chl-a", sc.chla || [], "#2ecc71"),
+      axLineSeries("Secchi", sc.secchi || [], "#6a5acd", {yAxisIndex: 1})],
+  }));
+  const c2 = axInit(panel, "#axQ2");
+  c2.setOption(Object.assign({}, AX_BASE, {
+    xAxis: axTimeX(), yAxis: axValY(),
+    series: [axLineSeries("NDCI", sc.ndci || [], "#2ecc71"),
+      axLineSeries("NDTI", sc.ndti || [], "#c58b4b")],
+  }));
+  // scatter: sana bo'yicha chla↔secchi juftlash
+  const smap = new Map((sc.secchi || []).map(a => [a[0], a[1]]));
+  const pts = (sc.chla || []).filter(a => smap.has(a[0])).map(a => [a[1], smap.get(a[0])]);
+  const sca = axInit(panel, "#axScatter");
+  sca.setOption({
+    backgroundColor: "transparent", grid: {left: 6, right: 12, top: 12, bottom: 34, containLabel: true},
+    tooltip: {trigger: "item", formatter: p => `Chl-a ${p.value[0]} · Secchi ${p.value[1]}`},
+    xAxis: Object.assign(axValY("Chl-a (mg/m³)"), {scale: true}),
+    yAxis: Object.assign(axValY("Secchi (m)"), {scale: true}),
+    series: [{type: "scatter", symbolSize: 8, data: pts, itemStyle: {color: "#00b0ff", opacity: 0.75}}],
+  });
+}
+function axRiskCell(k, v) {
+  return `<div class="pp-cell"><div class="k">${k}</div><div class="v ${RISK_CLASS[v] || ""}">${v || "—"}</div></div>`;
+}
+
+/* ---- Tab 3: Harorat va suv balansi ---- */
+function axTabHarorat(data, panel) {
+  const sc = data.scenes || {}, mm = data.monthly || {}, area = data.static.area_ha || 0;
+  panel.innerHTML = `
+    <div class="ax-sec">Havo harorati (oylik) va suv yuzasi harorati LST (per-scene)</div>
+    <div id="axT1" class="ax-chart"></div>
+    <div class="ax-sec">Suv balansi — bug'lanish (E) va yog'in (oylik, mm)</div>
+    <div id="axT2" class="ax-chart"></div>
+    <div class="ax-note">💧 m³ = mm × area_ha × 10 &nbsp;·&nbsp; maydon = ${axNum(area, 2)} ga</div>
+    <div class="ax-statcards" id="axBalCards"></div>`;
+  const t1 = axInit(panel, "#axT1");
+  t1.setOption(Object.assign({}, AX_BASE, {
+    xAxis: axTimeX(), yAxis: axValY("°C"),
+    series: [
+      Object.assign(axLineSeries("Havo (oylik)", (mm.airtemp_mean || []).map(a => [a[0] + "-15", a[1]]), "#ff9800"), {}),
+      axLineSeries("LST (scene)", sc.lst || [], "#e74c3c", {showSymbol: true, symbolSize: 4, smooth: false, lineStyle: {width: 1, type: "dashed", color: "#e74c3c"}}),
+    ],
+  }));
+  const months = [...new Set([...(mm.E || []), ...(mm.rain || [])].map(a => a[0]))].sort();
+  const emap = new Map((mm.E || []).map(a => a)), rmap = new Map((mm.rain || []).map(a => a));
+  const t2 = axInit(panel, "#axT2");
+  t2.setOption({
+    backgroundColor: "transparent", legend: {top: 2, textStyle: {color: "#9aa4b0", fontSize: 11}},
+    grid: {left: 6, right: 12, top: 30, bottom: 50, containLabel: true},
+    tooltip: {trigger: "axis"},
+    xAxis: {type: "category", data: months, axisLabel: {color: "#9aa4b0", fontSize: 9, rotate: 55}},
+    yAxis: axValY("mm"),
+    series: [
+      {name: "Bug'lanish (E)", type: "bar", data: months.map(m => emap.get(m) ?? null), itemStyle: {color: "#ef6c00"}},
+      {name: "Yog'in", type: "bar", data: months.map(m => rmap.get(m) ?? null), itemStyle: {color: "#1565c0"}},
+    ],
+  });
+  // net need kartalari (oxirgi mavjud oy)
+  const cards = months.slice(-4).map(m => {
+    const e = emap.get(m), r = rmap.get(m);
+    const net = (e != null && r != null) ? Math.max(e - r, 0) : null;
+    const m3 = net != null ? Math.round(net * area * 10) : null;
+    return `<div class="ax-statcard"><div class="t">${m}</div>
+      <div class="r">E ${axNum(e, 0)} · rain ${axNum(r, 0)} mm</div>
+      <div class="n">Net: ${net != null ? Math.round(net) + " mm ≈ " + m3.toLocaleString("uz-UZ") + " m³" : "—"}</div></div>`;
+  }).join("");
+  panel.querySelector("#axBalCards").innerHTML = cards;
+}
+
+/* ---- Tab 4: Anomaliya ---- */
+function axTabAnomaliya(data, panel) {
+  const sc = data.scenes || {}, anom = data.anom || {any: 0, dates: []};
+  const badge = anom.any ? `<span class="ax-alert on">⚠️ NDCI anomaliya: BOR</span>`
+    : `<span class="ax-alert">✓ Anomaliya qayd etilmagan</span>`;
+  panel.innerHTML = `
+    <div class="ax-alertbar">${badge}
+      <span class="ax-alertn">${anom.dates.length} ta sana</span></div>
+    <div class="ax-sec">NDCI signali va anomaliya nuqtalari (qizil)</div>
+    <div id="axAnom" class="ax-chart"></div>
+    <div class="ax-sec">Anomaliya sanalari</div>
+    <div class="ax-datelist">${anom.dates.length
+      ? anom.dates.map(d => `<span class="ax-datechip">${d}</span>`).join("")
+      : "<span style='color:#9aa4b0'>—</span>"}</div>
+    <div class="ax-note">Izoh: bu sanalarda alga/phytoplankton (NDCI) signali odatdagidan farq qilgan — kuzatuv tavsiya etiladi.</div>`;
+  const anomSet = new Set(anom.dates);
+  const markPts = (sc.ndci || []).filter(a => anomSet.has(a[0]));
+  const c = axInit(panel, "#axAnom");
+  c.setOption(Object.assign({}, AX_BASE, {
+    xAxis: axTimeX(), yAxis: axValY("NDCI"),
+    series: [
+      axLineSeries("NDCI", sc.ndci || [], "#2ecc71"),
+      {name: "Anomaliya", type: "scatter", data: markPts, symbolSize: 11,
+        itemStyle: {color: "#e74c3c", borderColor: "#fff", borderWidth: 1}},
+    ],
+  }));
+}
+
+/* ---- Tab 5: Xom atributlar jadvali ---- */
+function axBuildRows(data) {
+  const rows = [];
+  const s = data.static || {}, u = data.util || {};
+  Object.entries(s).forEach(([k, v]) => rows.push(["Geometriya", k, v]));
+  Object.entries(u).forEach(([k, v]) => rows.push(["Util inputs", k, v]));
+  Object.entries(data.scenes || {}).forEach(([m, arr]) =>
+    arr.forEach(([d, v]) => rows.push([AX_METRIC_CAT[m] || m, `${m}_${d}`, v])));
+  Object.entries(data.monthly || {}).forEach(([m, arr]) => {
+    const cat = m === "E" ? "Evaporation" : m === "rain" ? "Rain"
+      : (AX_METRIC_CAT[m.replace("_mean", "")] || m);
+    arr.forEach(([d, v]) => rows.push([cat, `${m}_${d}`, v]));
+  });
+  (data.anom?.dates || []).forEach(d => rows.push(["Anomaly", `ndci_anom_${d}`, 1]));
+  return rows;
+}
+function axTabXom(data, panel) {
+  const rows = axBuildRows(data);
+  const cats = ["Barchasi", ...[...new Set(rows.map(r => r[0]))]];
+  panel.innerHTML = `
+    <div class="ax-tools">
+      <input id="axSearch" class="ax-search" placeholder="🔍 atribut nomi bo'yicha qidirish...">
+      <select id="axCat" class="ax-catsel">${cats.map(c => `<option>${c}</option>`).join("")}</select>
+      <button id="axCsv" class="ax-csv">⬇ CSV</button>
+    </div>
+    <div class="ax-rawcount" id="axCount"></div>
+    <div class="ax-tablewrap"><table class="ax-table"><thead>
+      <tr><th>Kategoriya</th><th>Atribut</th><th>Qiymat</th></tr></thead>
+      <tbody id="axTbody"></tbody></table></div>`;
+  const search = panel.querySelector("#axSearch"), catSel = panel.querySelector("#axCat");
+  const tbody = panel.querySelector("#axTbody"), count = panel.querySelector("#axCount");
+  function draw() {
+    const q = search.value.trim().toLowerCase(), cat = catSel.value;
+    const flt = rows.filter(r => (cat === "Barchasi" || r[0] === cat)
+      && (!q || r[1].toLowerCase().includes(q)));
+    tbody.innerHTML = flt.slice(0, 1200).map(r =>
+      `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+    count.textContent = `${flt.length} ta atribut${flt.length > 1200 ? " (1200 tasi ko'rsatildi)" : ""}`;
+  }
+  search.oninput = draw; catSel.onchange = draw;
+  panel.querySelector("#axCsv").onclick = () => axExportCSV(data.static.id, rows);
+  draw();
+}
+function axExportCSV(pid, rows) {
+  const csv = "kategoriya,atribut,qiymat\n" + rows.map(r =>
+    `${r[0]},${r[1]},${r[2] == null ? "" : String(r[2]).replace(/,/g, ";")}`).join("\n");
+  const blob = new Blob(["﻿" + csv], {type: "text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `hovuz_${pid}_atributlar.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 100);
+}
+
+/* ---- Avtomatik xulosa ---- */
+function axSummary(pid, data) {
+  const u = data.util || {}, sc = data.scenes || {}, mm = data.monthly || {}, anom = data.anom || {};
+  const chla = axStat(sc.chla || []), secchi = axStat(sc.secchi || []);
+  const eArr = (mm.E || []).map(a => a[1]).filter(x => x != null);
+  const eMax = eArr.length ? Math.max(...eArr) : null;
+  const parts = [];
+  parts.push(`Hovuz ${pid} bo'yicha ${u.analysis_start || "?"} – ${u.analysis_end || "?"} davrida `
+    + `<b>${u.foydalanilgan || "—"}</b> holat kuzatilgan.`);
+  if (u.sar_water_persistence != null)
+    parts.push(`SAR signallari suv mavjudligini ko'rsatadi: persistence ${axNum(u.sar_water_persistence, 2)}, `
+      + `cover ${axNum(u.sar_water_cover_mean, 2)}.`);
+  if (chla.n) parts.push(`Chl-a asosan ${axNum(chla.min, 0)}–${axNum(chla.max, 0)} mg/m³ oralig'ida `
+    + `(phytoplankton bazasi mavjud).`);
+  if (secchi.n) parts.push(`Secchi ${axNum(secchi.min, 2)}–${axNum(secchi.max, 2)} m — `
+    + `${secchi.mean < 0.3 ? "suv tiniqligi past" : "tiniqlik o'rtacha"}.`);
+  if (eMax != null) parts.push(`Bug'lanish eng yuqori ${axNum(eMax, 0)} mm gacha — suv balansi kuzatuv talab qiladi.`);
+  parts.push(anom.any
+    ? `NDCI anomaliya mavjud (${(anom.dates || []).join(", ")}) — alga signalini nazorat qilish tavsiya etiladi.`
+    : `NDCI anomaliya qayd etilmagan.`);
+  return `<div class="ax-summary-h">🧠 Avtomatik xulosa</div><div>${parts.join(" ")}</div>`;
 }
 
 /* =====================================================================

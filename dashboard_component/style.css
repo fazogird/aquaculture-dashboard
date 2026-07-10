@@ -326,6 +326,60 @@ select#yearSel:focus { border-color: var(--accent); }
 }
 .pp-note-dim { background: var(--panel2); color: var(--text-dim); }
 
+/* ---------- Analitika popup (Explorer) ---------- */
+.ax-tabs {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;
+  position: sticky; top: 0; background: var(--panel); padding-bottom: 6px; z-index: 2;
+}
+.ax-tab {
+  flex: 1 1 auto; font-size: 11.5px; padding: 6px 8px; border-radius: 7px;
+  background: var(--panel2); border: 1px solid transparent; color: var(--text);
+  cursor: pointer; white-space: nowrap;
+}
+.ax-tab.active { border-color: var(--accent); color: var(--accent); }
+.ax-panel { min-height: 200px; }
+.ax-sec { font-size: 11px; text-transform: uppercase; letter-spacing: .4px;
+  color: var(--text-dim); margin: 10px 0 6px; }
+.ax-chart { width: 100%; height: 230px; }
+.ax-gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ax-gauges .gauge { height: 120px; }
+.ax-grid { grid-template-columns: repeat(3, 1fr) !important; margin-top: 8px; }
+.ax-statcards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 8px; }
+.ax-statcard { background: #12161b; border: 1px solid var(--border); border-left-width: 3px;
+  border-radius: 8px; padding: 7px 10px; }
+.ax-statcard .t { font-weight: 700; font-size: 12px; }
+.ax-statcard .r { font-size: 11px; color: var(--text); margin-top: 2px; }
+.ax-statcard .n { font-size: 10px; color: var(--text-dim); }
+.ax-note { background: #10233a; border-radius: 7px; padding: 7px 10px; font-size: 11.5px; margin: 8px 0; }
+.ax-alertbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ax-alert { font-weight: 700; font-size: 13px; color: #2ecc71; }
+.ax-alert.on { color: #e74c3c; }
+.ax-alertn { font-size: 12px; color: var(--text-dim); }
+.ax-datelist { display: flex; flex-wrap: wrap; gap: 6px; }
+.ax-datechip { background: #3a1414; color: #ff8a80; border: 1px solid #7f1d1d;
+  border-radius: 6px; padding: 3px 9px; font-size: 12px; }
+/* xom jadval */
+.ax-tools { display: flex; gap: 6px; align-items: center; position: sticky; top: 40px;
+  background: var(--panel); padding: 4px 0; z-index: 1; }
+.ax-search { flex: 1; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 7px; padding: 7px 10px; font-size: 12.5px; outline: none; }
+.ax-search:focus { border-color: var(--accent); }
+.ax-catsel { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px; font-size: 12px; }
+.ax-csv { background: var(--accent); color: #04121a; border: none; border-radius: 7px;
+  padding: 7px 12px; font-weight: 700; font-size: 12px; cursor: pointer; }
+.ax-rawcount { font-size: 11px; color: var(--text-dim); margin: 6px 0; }
+.ax-tablewrap { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+.ax-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.ax-table th { position: sticky; top: 0; background: #1c2129; color: var(--text-dim);
+  text-align: left; padding: 6px 8px; font-weight: 500; }
+.ax-table td { padding: 4px 8px; border-bottom: 1px solid #1c2129; }
+.ax-table td:nth-child(3) { font-weight: 600; text-align: right; }
+.ax-summary { background: #0f1c14; border: 1px solid #1e3a24; border-radius: 9px;
+  padding: 11px 13px; margin-top: 12px; font-size: 12.5px; line-height: 1.55; }
+.ax-summary-h { font-weight: 700; margin-bottom: 5px; }
+.analytics-popup .maplibregl-popup-content { width: 880px; }
+
 /* kattalashtirish tugmasi */
 .pp-section-title { display: flex; align-items: center; }
 .pp-expand {
